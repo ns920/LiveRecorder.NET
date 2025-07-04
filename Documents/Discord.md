@@ -1,13 +1,13 @@
-# Â¼²¥»úÖ§³Ö·¢ËÍDiscord¿ª²¥ÌáÐÑ£¬µ«ÊÇÐèÒª×ÔÐÐÅäÖÃDiscord Bot¡£
+# å½•æ’­æœºæ”¯æŒå‘é€Discordå¼€æ’­æé†’ï¼Œä½†æ˜¯éœ€è¦è‡ªè¡Œé…ç½®Discord Botã€‚
 
-1. ÓÃ»§ÐèÒªÔÚDiscordÖÐ´´½¨Ò»¸öBot£¬²¢»ñÈ¡BotµÄToken¡£[Discord Developers](https://discord.com/developers/applications)
-1. ´ÓÒ³ÃæÖÐµÄOAuth2Ñ¡Ïî¿¨ÖÐ£¬»ñÈ¡BotµÄÑûÇëÁ´½Ó£¬´ò¿ªÁ´½Ó²¢ÑûÇëBotµ½ÄãµÄ·þÎñÆ÷¡£
-1. ´ò¿ªDiscordµÄ¿ª·¢ÕßÄ£Ê½£¬ÓÒ¼ü×Ô¼ºµÄÐÅÏ¢£¬¸´ÖÆÓÃ»§ID¡£
-1. ½«µÃµ½µÄÓÃ»§IDºÍBotµÄTokenÌîÈëÅäÖÃÎÄ¼þÖÐ¡££º
-```json
-"accounts": {
-    "discord_token": "",
-    "discord_userid": ""
-  }
-```
-1.ÅäÖÃºó£¬Bot»áÔÚ¿ª²¥Ê±Ë½ÁÄÄã¡£
+1. ç”¨æˆ·éœ€è¦åœ¨Discordä¸­åˆ›å»ºä¸€ä¸ªBotï¼Œå¹¶èŽ·å–Botçš„Tokenã€‚[Discord Developers](https://discord.com/developers/applications)
+1. ä»Žé¡µé¢ä¸­çš„OAuth2é€‰é¡¹å¡ä¸­ï¼ŒèŽ·å–Botçš„é‚€è¯·é“¾æŽ¥ï¼Œæ‰“å¼€é“¾æŽ¥å¹¶é‚€è¯·Botåˆ°ä½ çš„æœåŠ¡å™¨ã€‚
+1. æ‰“å¼€Discordçš„å¼€å‘è€…æ¨¡å¼ï¼Œå³é”®è‡ªå·±çš„ä¿¡æ¯ï¼Œå¤åˆ¶ç”¨æˆ·IDã€‚
+1. å°†å¾—åˆ°çš„ç”¨æˆ·IDå’ŒBotçš„Tokenå¡«å…¥é…ç½®æ–‡ä»¶ä¸­ã€‚ï¼š
+    ```json
+    "accounts": {
+        "discord_token": "",
+        "discord_userid": ""
+      }
+    ```
+1. é…ç½®åŽï¼ŒBotä¼šåœ¨å¼€æ’­æ—¶ç§èŠä½ ã€‚
