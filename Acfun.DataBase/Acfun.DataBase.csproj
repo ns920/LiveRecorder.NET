@@ -7,7 +7,10 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<DebugType>None</DebugType>
+		<DebugSymbols>false</DebugSymbols>
+	</PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\AcfunApi\AcfunApi.csproj" />
     <ProjectReference Include="..\LiveRecorder.NET\LiveRecorder.NET.csproj" />
