@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -41,12 +42,21 @@ namespace LiveRecorder.NET.Plugins
         /// <exception cref="NotImplementedException"></exception>
         public async Task<int> CheckLiveStatus(Streamer streamer)
         {
-            var isLive = _acfunMainService._nowLives.Where(x => x.uid.ToString() == streamer.Channel).FirstOrDefault();
-            if (isLive != null)
+            if(_acfunMainService!=null&&_acfunMainService._nowLives!=null)
             {
-                return 1;
+                var isLive = _acfunMainService._nowLives.Where(x => x.uid.ToString() == streamer.Channel).FirstOrDefault();
+                if (isLive != null)
+                {
+                    return 1;
+                }
+                return 0;
             }
-            return 0;
+            else
+            {
+                _logger.LogWarning($"Acfun主模块尚未启动");
+                return 0;
+            }
+
         }
 
         /// <summary>
