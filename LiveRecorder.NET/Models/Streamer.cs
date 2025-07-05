@@ -17,5 +17,7 @@ namespace LiveRecorder.NET.Models
         public string Token { get; set; } = string.Empty;
         public string LivePassword { get; set; } = string.Empty;
         public Dictionary<string,string> CustomHeader { get; set; } = new Dictionary<string, string>();
+
+        public bool MessageSend { get; set; } = false;
     }
 }
