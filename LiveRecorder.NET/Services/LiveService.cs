@@ -178,6 +178,7 @@ namespace LiveRecorder.NET.Services
                     else
                     {
                         streamer.MessageSend = false;
+                        streamer.Status = 0;
                         if (oldStatus == 1)
                         {
                             _logger.LogInformation("{name} ({channel})直播结束了", streamer.Name, streamer.Channel);

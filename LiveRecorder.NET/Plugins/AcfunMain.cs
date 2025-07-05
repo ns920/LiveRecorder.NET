@@ -5,6 +5,7 @@ using LiveRecorder.NET.Models;
 using LiveRecorder.NET.Models.Acfun;
 using LiveRecorder.NET.Utils;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -44,8 +45,6 @@ namespace LiveRecorder.NET.Plugins
         {
             string url = $"https://live.acfun.cn/api/channel/list?count=100000&pcursor=0";
 
-            using var transaction = await _dbContext.Database.BeginTransactionAsync();
-
             HttpClient client = _httpClientFactory.CreateClient();
             try
             {
@@ -64,12 +63,10 @@ namespace LiveRecorder.NET.Plugins
                 _nowLives = liveListFromApi ?? new List<AcfunLive>();
                 _dbContext.Lives.AddRange(newLiveList);
                 _dbContext.SaveChanges();
-                await transaction.CommitAsync();
                 _logger.LogInformation("ACFUN API获取列表成功");
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _dbContext.ChangeTracker.Clear();
                 _logger.LogError(ex, "ACFUN API获取列表出现异常");
             }
