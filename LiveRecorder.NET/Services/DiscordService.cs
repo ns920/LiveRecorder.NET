@@ -1,8 +1,10 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using System;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -18,13 +20,15 @@ namespace LiveRecorder.NET.Services
         private readonly CommandService _commandService;
         private readonly IServiceProvider _services;
         private readonly ILogger<DiscordService> _logger;
+        private readonly IConfiguration _configuration;
 
-        public DiscordService(DiscordSocketClient client, CommandService commandService, IServiceProvider services, ILogger<DiscordService> logger)
+        public DiscordService(DiscordSocketClient client, CommandService commandService, IServiceProvider services, ILogger<DiscordService> logger,IConfiguration configuration)
         {
             _client = client;
             _commandService = commandService;
             _services = services;
             _logger = logger;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -205,6 +209,28 @@ namespace LiveRecorder.NET.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "发送私人消息给用户 {UserId} 失败", userId);
+                throw;
+            }
+        }
+
+        public async Task ReLoginAsync()
+        {
+            try
+            {
+                var token = _configuration["accounts:discord_token"];
+                if (!string.IsNullOrEmpty(token)&&_client.ConnectionState==ConnectionState.Disconnected)
+                {
+
+                    Log.Information("正在重新连接Discord客户端...");
+
+                    await _client.LoginAsync(TokenType.Bot, token);
+                    await _client.StartAsync();
+                    Log.Information("Discord客户端启动成功");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Discord客户端启动失败");
                 throw;
             }
         }

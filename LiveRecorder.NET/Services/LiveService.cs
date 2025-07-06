@@ -167,10 +167,14 @@ namespace LiveRecorder.NET.Services
                             _logger.LogInformation("{name} ({channel})开播了", streamer.Name, streamer.Channel);
                             _logger.LogInformation("开始录制 {name} ({channel}) 的直播", streamer.Name, streamer.Channel);
                             var discordId = _configuration.GetValue<ulong>("accounts:discord_userid", 0);
-                            if (discordId > 0 && _discordService.IsAvailable&&!streamer.MessageSend)
+                            if (discordId > 0 && _discordService.IsAvailable && !streamer.MessageSend)
                             {
                                 await _discordService.SendDirectMessageAsync(discordId, $"{streamer.Name} ({streamer.Channel})开播了！");
-                                streamer.MessageSend = true; 
+                                streamer.MessageSend = true;
+                            }
+                            else
+                            {
+                                await _discordService.ReLoginAsync();
                             }
                             var start = await _websiteServiceFactory(streamer.Type).StartRecording(streamer);
                         }
