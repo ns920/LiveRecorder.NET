@@ -1,6 +1,7 @@
 using AcfunApi;
 using LiveRecorder.NET.Data;
 using LiveRecorder.NET.Models.Acfun;
+using LiveRecorder.NET.Utils;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -174,7 +175,8 @@ namespace Acfun.DataBase
                     item.SubItems.Add(live.uid.ToString());
                     item.SubItems.Add(live.name);
                     item.SubItems.Add(live.title);
-                    item.SubItems.Add(DateTimeOffset.FromUnixTimeMilliseconds(live.startTime).ToString("yyyy-MM-dd HH:mm:ss"));
+                    item.SubItems.Add(GetTimeStamp.GetDateTimeByMiliSecond(live.startTime).ToString("yyyy-MM-dd HH:mm:ss"));
+
                     // 显示录像链接的状态，而不是完整链接（避免界面过于拥挤）
                     item.SubItems.Add(live.url);
                     item.SubItems.Add(live.url_backup);

@@ -5,6 +5,7 @@ using LiveRecorder.NET.Models;
 using LiveRecorder.NET.Models.Acfun;
 using LiveRecorder.NET.Utils;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -66,7 +67,8 @@ namespace LiveRecorder.NET.Plugins
             }
             catch (Exception ex)
             {
-
+                _dbContext.ChangeTracker.Clear();
+                _logger.LogError(ex, "ACFUN API获取列表出现异常");
             }
             return 0;
         }
