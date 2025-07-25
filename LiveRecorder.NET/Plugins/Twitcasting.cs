@@ -1,6 +1,7 @@
 ﻿using LiveRecorder.NET.IServices;
 using LiveRecorder.NET.Models;
 using LiveRecorder.NET.Services.Singleton;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
@@ -44,9 +45,11 @@ namespace LiveRecorder.NET.Plugins
                     headers.Add("Cookie", $"tc_id={account};tc_ss={token};");
                 }
             }
+
+            //这种传递方式似乎不对
             if (!string.IsNullOrEmpty(streamer.LivePassword))
             {
-                headers.Add("wpass", $"{CalculatePasswordHash(streamer.LivePassword)}");
+                //headers.Add("wpass", $"{CalculatePasswordHash(streamer.LivePassword)}");
             }
             headers.Add("Origin", "https://twitcasting.tv/");
             headers.Add("Referer", $"https://twitcasting.tv/{streamer.Channel}");
@@ -128,7 +131,6 @@ namespace LiveRecorder.NET.Plugins
                 var streamUrl = "";
                 if (streamUrlNode is not null)
                 {
-                    // 按照优先级尝试获取流地址（高 > 中 > 低）
                     if (streamUrlNode["main"] != null && !string.IsNullOrEmpty(streamUrlNode["main"]?.GetValue<string>()))
                     {
                         streamUrl = streamUrlNode["main"]?.GetValue<string>();
@@ -141,6 +143,11 @@ namespace LiveRecorder.NET.Plugins
                     {
                         streamUrl = streamUrlNode["base"]?.GetValue<string>();
                     }
+                }
+                if (!string.IsNullOrEmpty(streamer.LivePassword))
+                {
+                    streamUrl = QueryHelpers.AddQueryString(streamUrl, "word", CalculatePasswordHash(streamer.LivePassword));
+                    //headers.Add("wpass", $"{CalculatePasswordHash(streamer.LivePassword)}");
                 }
                 if (!string.IsNullOrEmpty(streamUrl))
                 {
