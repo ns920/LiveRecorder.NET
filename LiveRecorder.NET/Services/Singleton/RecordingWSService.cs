@@ -131,7 +131,7 @@ namespace LiveRecorder.NET.Services.Singleton
                             // 创建文件流
                             using var fileStream = new FileStream(outputFilePath, FileMode.Create, FileAccess.Write);
                             // 接收数据直到连接关闭或取消
-                            while (client.State == WebSocketState.Open && !cts.Token.IsCancellationRequested)
+                            while (client.State == WebSocketState.Open && !combinedCts.Token.IsCancellationRequested)
                             {
                                 WebSocketReceiveResult result;
                                 try
@@ -147,7 +147,7 @@ namespace LiveRecorder.NET.Services.Singleton
                                     }
 
                                     // 将片段写入内存流
-                                    await memoryStream.WriteAsync(receiveBuffer, 0, result.Count, cts.Token);
+                                    await memoryStream.WriteAsync(receiveBuffer, 0, result.Count, combinedCts.Token);
                                     totalBytesReceived += result.Count;
 
                                     // 如果消息接收完成，则写入文件并重置内存流
@@ -155,8 +155,8 @@ namespace LiveRecorder.NET.Services.Singleton
                                     {
                                         // 将完整消息写入文件
                                         memoryStream.Position = 0;
-                                        await memoryStream.CopyToAsync(fileStream, bufferSize, cts.Token);
-                                        await fileStream.FlushAsync(cts.Token);
+                                        await memoryStream.CopyToAsync(fileStream, bufferSize, combinedCts.Token);
+                                        await fileStream.FlushAsync(combinedCts.Token);
 
                                         // 重置内存流
                                         memoryStream.SetLength(0);

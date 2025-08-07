@@ -1,5 +1,6 @@
 ﻿using LiveRecorder.NET.IServices;
 using LiveRecorder.NET.Models;
+using LiveRecorder.NET.Models.Enum;
 using LiveRecorder.NET.Services.Singleton;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -128,7 +129,7 @@ namespace LiveRecorder.NET.Services
                 _logger.LogInformation("更新直播者信息: {name} ({channel})", existingStreamer.Name, existingStreamer.Channel);
 
                 // 保留当前直播状态
-                int currentStatus = existingStreamer.Status;
+                var currentStatus = existingStreamer.Status;
 
                 // 更新所有其他属性
                 existingStreamer.Name = updatedStreamer.Name;
@@ -152,38 +153,42 @@ namespace LiveRecorder.NET.Services
 
             foreach (var streamer in _streamers)
             {
+                // 如果已经在检查中或录制中，跳过
+                if (streamer.Status == StreamerStatus.Checking || streamer.Status == StreamerStatus.Recording)
+                {
+                    continue;
+                }
+
+                // 同步设置为检查中状态，防止重复触发
+                streamer.Status = StreamerStatus.Checking;
 
                 // 创建并启动处理此主播的任务
                 var task = Task.Run(async () =>
                 {
                     bool isLive = await CheckIfLive(streamer, stoppingToken);
 
-                    var oldStatus = streamer.Status; // 记录旧状态
                     if (isLive)
                     {
-                        if (oldStatus != 1)
+                        streamer.Status = StreamerStatus.Recording; // 更新状态为直播中
+                        _logger.LogInformation("{name} ({channel})开播了", streamer.Name, streamer.Channel);
+                        _logger.LogInformation("开始录制 {name} ({channel}) 的直播", streamer.Name, streamer.Channel);
+                        var discordId = _configuration.GetValue<ulong>("accounts:discord_userid", 0);
+                        if (discordId > 0 && _discordService.IsAvailable && !streamer.MessageSend)
                         {
-                            streamer.Status = 1; // 更新状态为直播中
-                            _logger.LogInformation("{name} ({channel})开播了", streamer.Name, streamer.Channel);
-                            _logger.LogInformation("开始录制 {name} ({channel}) 的直播", streamer.Name, streamer.Channel);
-                            var discordId = _configuration.GetValue<ulong>("accounts:discord_userid", 0);
-                            if (discordId > 0 && _discordService.IsAvailable&&!streamer.MessageSend)
-                            {
-                                await _discordService.SendDirectMessageAsync(discordId, $"{streamer.Name} ({streamer.Channel})开播了！");
-                                streamer.MessageSend = true; 
-                            }
-                            var start = await _websiteServiceFactory(streamer.Type).StartRecording(streamer);
+                            await _discordService.SendDirectMessageAsync(discordId, $"{streamer.Name} ({streamer.Channel})开播了！");
+                            streamer.MessageSend = true;
                         }
+                        var start = await _websiteServiceFactory(streamer.Type).StartRecording(streamer);
+
                     }
                     else
                     {
-                        streamer.MessageSend = false;
-                        streamer.Status = 0;
-                        if (oldStatus == 1)
-                        {
-                            _logger.LogInformation("{name} ({channel})直播结束了", streamer.Name, streamer.Channel);
-                            await _websiteServiceFactory(streamer.Type).EndRecording(streamer);
-                        }
+                        await RecordingCompleted(streamer);
+                    }
+
+                    if (streamer.Status == StreamerStatus.Checking)
+                    {
+                        streamer.Status = StreamerStatus.Offline;
                     }
                 }, stoppingToken);
 
@@ -241,7 +246,7 @@ namespace LiveRecorder.NET.Services
         /// <param name="e"></param>
         private void OnRecordingCompleted(object? sender, RecordService.RecordingCompletedEventArgs e)
         {
-            e.Streamer.Status = 0;
+            Task.Run(async () => await RecordingCompleted(e.Streamer));
         }
 
         /// <summary>
@@ -251,7 +256,19 @@ namespace LiveRecorder.NET.Services
         /// <param name="e"></param>
         private void OnRecordingCompletedWS(object? sender, RecordingWSService.RecordingCompletedEventArgs e)
         {
-            e.Streamer.Status = 0;
+            Task.Run(async () => await RecordingCompleted(e.Streamer));
+        }
+
+        private async Task RecordingCompleted(Streamer streamer)
+        {
+            if (streamer.Status == StreamerStatus.Recording)
+            {
+                _logger.LogInformation("{name} ({channel})直播结束了", streamer.Name, streamer.Channel);
+                await _websiteServiceFactory(streamer.Type).EndRecording(streamer);
+            }
+
+            streamer.MessageSend = false;
+            streamer.Status = StreamerStatus.Offline;
         }
     }
 }
