@@ -153,10 +153,14 @@ namespace LiveRecorder.NET.Services
 
             foreach (var streamer in _streamers)
             {
-                // 如果已经在检查中或录制中，跳过
-                if (streamer.Status == StreamerStatus.Checking || streamer.Status == StreamerStatus.Recording)
+                //acfun不走录制逻辑 所以需要在这里检查是否在直播
+                if (streamer.Type != "acfun")
                 {
-                    continue;
+                    // 如果已经在检查中或录制中，跳过
+                    if (streamer.Status == StreamerStatus.Checking || streamer.Status == StreamerStatus.Recording)
+                    {
+                        continue;
+                    }
                 }
 
                 // 同步设置为检查中状态，防止重复触发
@@ -183,7 +187,7 @@ namespace LiveRecorder.NET.Services
                     }
                     else
                     {
-                        await RecordingCompleted(streamer);
+                        Task.Run(async () => await RecordingCompleted(streamer));
                     }
 
                     if (streamer.Status == StreamerStatus.Checking)
