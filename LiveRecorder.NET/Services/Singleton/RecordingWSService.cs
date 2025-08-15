@@ -210,6 +210,8 @@ namespace LiveRecorder.NET.Services.Singleton
                     }
                     finally
                     {
+                        // 触发录制完成事件，立即触发录制完成事件是为了立即释放直播者状态方便重启录制
+                        RecordingCompleted?.Invoke(this, new RecordingCompletedEventArgs(streamer));
                         // 检查文件是否存在且有内容，如果有则进行封装
                         if (File.Exists(outputFilePath))
                         {
@@ -230,8 +232,7 @@ namespace LiveRecorder.NET.Services.Singleton
                             _activeRecordings.Remove(cts);
                         }
 
-                        // 触发录制完成事件
-                        RecordingCompleted?.Invoke(this, new RecordingCompletedEventArgs(streamer));
+
                     }
                 });
 
