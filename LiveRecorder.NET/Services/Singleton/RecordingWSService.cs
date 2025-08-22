@@ -243,6 +243,10 @@ namespace LiveRecorder.NET.Services.Singleton
                 _logger.LogError(ex, $"开始WebSocket录制 {streamer.Name} 的直播时出错");
                 return false;
             }
+            finally
+            {
+                RecordingCompleted?.Invoke(this, new RecordingCompletedEventArgs(streamer));
+            }
         }
 
         // 处理程序退出事件
