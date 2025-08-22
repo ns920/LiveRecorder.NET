@@ -18,7 +18,17 @@ namespace LiveRecorder.NET.Models
         public string Token { get; set; } = string.Empty;
         public string LivePassword { get; set; } = string.Empty;
         public Dictionary<string, string> CustomHeader { get; set; } = new Dictionary<string, string>();
-
+        /// <summary>
+        /// 消息是否已发送
+        /// </summary>
         public bool MessageSend { get; set; } = false;
+        /// <summary>
+        /// 是否发送消息
+        /// </summary>
+        public bool IsNotify { get; set; } = true;
+        /// <summary>
+        /// 是否录制
+        /// </summary>
+        public bool IsRecord { get; set; } = true;
     }
 }
