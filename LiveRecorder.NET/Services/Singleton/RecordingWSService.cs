@@ -50,6 +50,7 @@ namespace LiveRecorder.NET.Services.Singleton
                 if (string.IsNullOrEmpty(url))
                 {
                     _logger.LogError("WebSocket链接地址为空，无法开始录制");
+                    RecordingCompleted?.Invoke(this, new RecordingCompletedEventArgs(streamer));
                     return false;
                 }
 
@@ -177,11 +178,9 @@ namespace LiveRecorder.NET.Services.Singleton
                                 }
                             }
 
-
                             // 最后刷新确保所有数据写入磁盘
                             await fileStream.FlushAsync(CancellationToken.None);
                         }
-
 
                         // 检查录制结果
                         var fileInfo = new FileInfo(outputFilePath);
@@ -231,8 +230,6 @@ namespace LiveRecorder.NET.Services.Singleton
                         {
                             _activeRecordings.Remove(cts);
                         }
-
-
                     }
                 });
 
@@ -242,10 +239,6 @@ namespace LiveRecorder.NET.Services.Singleton
             {
                 _logger.LogError(ex, $"开始WebSocket录制 {streamer.Name} 的直播时出错");
                 return false;
-            }
-            finally
-            {
-                RecordingCompleted?.Invoke(this, new RecordingCompletedEventArgs(streamer));
             }
         }
 
