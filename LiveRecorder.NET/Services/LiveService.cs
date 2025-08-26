@@ -200,6 +200,8 @@ namespace LiveRecorder.NET.Services
                     }
                     else
                     {
+                        //消息发送状态仅通过轮询重置，防止无权限录制时RecordingCompleted无限触发导致消息spam
+                        streamer.MessageSend = false;
                         Task.Run(async () => await RecordingCompleted(streamer));
                     }
 
@@ -284,7 +286,6 @@ namespace LiveRecorder.NET.Services
                 await _websiteServiceFactory(streamer.Type).EndRecording(streamer);
             }
 
-            streamer.MessageSend = false;
             streamer.Status = StreamerStatus.Offline;
         }
     }
