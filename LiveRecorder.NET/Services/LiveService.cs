@@ -156,8 +156,10 @@ namespace LiveRecorder.NET.Services
                 //acfun不走录制逻辑 所以需要在这里检查是否在直播
                 if (streamer.Type != "acfun")
                 {
-                    // 如果已经在检查中或录制中，跳过
-                    if (streamer.Status == StreamerStatus.Checking || streamer.Status == StreamerStatus.Recording)
+                    // 如果已经在检查中、录制中，或者处于Living状态且配置不需要录制，则跳过
+                    if (streamer.Status == StreamerStatus.Checking ||
+                        streamer.Status == StreamerStatus.Recording ||
+                       (streamer.Status == StreamerStatus.Living && !streamer.IsRecord))
                     {
                         continue;
                     }
@@ -173,7 +175,6 @@ namespace LiveRecorder.NET.Services
 
                     if (isLive)
                     {
-                        streamer.Status = StreamerStatus.Recording; // 更新状态为直播中
                         _logger.LogInformation("{name} ({channel})开播了", streamer.Name, streamer.Channel);
 
                         // 根据IsNotify判断是否发送通知
@@ -187,15 +188,17 @@ namespace LiveRecorder.NET.Services
                             }
                         }
 
-                        // 根据IsRecord判断是否开始录制
+                        // 如果配置需要录制，则走录制流程；否则更新状态为Living
                         if (streamer.IsRecord)
                         {
+                            streamer.Status = StreamerStatus.Recording;
                             _logger.LogInformation("开始录制 {name} ({channel}) 的直播", streamer.Name, streamer.Channel);
                             var start = await _websiteServiceFactory(streamer.Type).StartRecording(streamer);
                         }
                         else
                         {
-                            _logger.LogInformation("主播 {name} ({channel}) 已开播，但录制功能已禁用", streamer.Name, streamer.Channel);
+                            streamer.Status = StreamerStatus.Living;
+                            _logger.LogInformation("主播 {name} ({channel})已开播，但录制功能已禁用", streamer.Name, streamer.Channel);
                         }
                     }
                     else
