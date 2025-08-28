@@ -103,7 +103,10 @@ namespace LiveRecorder.NET.Services
                      existing.UserName != config.UserName ||
                      existing.Password != config.Password ||
                      existing.Token != config.Token ||
-                     existing.LivePassword != config.LivePassword))).ToList();
+                     existing.LivePassword != config.LivePassword ||
+                     existing.IsNotify != config.IsNotify ||
+                     existing.IsRecord != config.IsRecord
+                     ))).ToList();
 
             // 从列表中移除不再存在的直播者
             foreach (var streamer in streamersToRemove)
@@ -128,18 +131,17 @@ namespace LiveRecorder.NET.Services
 
                 _logger.LogInformation("更新直播者信息: {name} ({channel})", existingStreamer.Name, existingStreamer.Channel);
 
-                // 保留当前直播状态
-                var currentStatus = existingStreamer.Status;
-
-                // 更新所有其他属性
-                existingStreamer.Name = updatedStreamer.Name;
-                existingStreamer.UserName = updatedStreamer.UserName;
-                existingStreamer.Password = updatedStreamer.Password;
-                existingStreamer.Token = updatedStreamer.Token;
-                existingStreamer.LivePassword = updatedStreamer.LivePassword;
-
-                // 确保状态保持不变
-                existingStreamer.Status = currentStatus;
+                lock (existingStreamer)
+                {
+                    // 更新所有其他属性
+                    existingStreamer.Name = updatedStreamer.Name;
+                    existingStreamer.UserName = updatedStreamer.UserName;
+                    existingStreamer.Password = updatedStreamer.Password;
+                    existingStreamer.Token = updatedStreamer.Token;
+                    existingStreamer.LivePassword = updatedStreamer.LivePassword;
+                    existingStreamer.IsNotify = updatedStreamer.IsNotify;
+                    existingStreamer.IsRecord = updatedStreamer.IsRecord;
+                }
             }
         }
         private async Task CheckStreamers(CancellationToken stoppingToken)
