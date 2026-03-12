@@ -81,57 +81,81 @@ namespace LiveRecorder.NET.Services.Singleton
                     {
                         _logger.LogInformation($"正在连接WebSocket: {url}");
 
-                        // 创建WebSocket客户端
-                        using var client = new ClientWebSocket();
-
-                        // 配置代理（如果有）
-                        var proxyUrl = _configuration["proxy"];
-                        if (!string.IsNullOrEmpty(proxyUrl))
-                        {
-                            _logger.LogInformation($"使用代理: {proxyUrl}");
-                            client.Options.Proxy = new System.Net.WebProxy(proxyUrl);
-                        }
-
                         var startTime = DateTime.Now;
 
                         // 设置合理的超时时间
                         var connectTimeout = TimeSpan.FromSeconds(30);
-                        using var connectCts = new CancellationTokenSource(connectTimeout);
-                        using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(
-                            connectCts.Token, cts.Token);
 
                         // 在连接之前添加必要的头信息和子协议
-                        client.Options.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-
-                        if (streamer.CustomHeader.Count > 0)
-                        {
-                            foreach (var header in streamer.CustomHeader)
-                            {
-                                client.Options.SetRequestHeader(header.Key, header.Value);
-                            }
-                        }
-
                         using var memoryStream = new MemoryStream();
                         int bufferSize = 1024 * 16;
                         var receiveBuffer = new byte[bufferSize];
                         var totalBytesReceived = 0L;
+                        var maxReconnectAttempts = 1;
+                        var reconnectAttempt = 0;
+                        var shouldReconnect = false;
 
-                        _logger.LogInformation($"连接到WebSocket服务器: {url}");
-                        try
-                        {
-                            await client.ConnectAsync(new Uri(url), combinedCts.Token);
-                            _logger.LogInformation("WebSocket连接成功");
-                        }
-                        catch (WebSocketException wsEx)
-                        {
-                            _logger.LogError("{streamer}连接WebSocket服务器失败", streamer.Name);
-                        }
+                        // 创建文件流
+                        using var fileStream = new FileStream(outputFilePath, FileMode.Create, FileAccess.Write);
 
-                        if (client.State == WebSocketState.Open)
+                        while (!cts.Token.IsCancellationRequested)
                         {
-                            // 创建文件流
-                            using var fileStream = new FileStream(outputFilePath, FileMode.Create, FileAccess.Write);
-                            // 接收数据直到连接关闭或取消
+                            shouldReconnect = false;
+
+                            using var client = new ClientWebSocket();
+
+                            // 配置代理（如果有）
+                            var proxyUrl = _configuration["proxy"];
+                            if (!string.IsNullOrEmpty(proxyUrl))
+                            {
+                                _logger.LogInformation($"使用代理: {proxyUrl}");
+                                client.Options.Proxy = new System.Net.WebProxy(proxyUrl);
+                            }
+
+                            client.Options.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+                            if (streamer.CustomHeader.Count > 0)
+                            {
+                                foreach (var header in streamer.CustomHeader)
+                                {
+                                    client.Options.SetRequestHeader(header.Key, header.Value);
+                                }
+                            }
+
+                            using var connectCts = new CancellationTokenSource(connectTimeout);
+                            using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(connectCts.Token, cts.Token);
+
+                            _logger.LogInformation($"连接到WebSocket服务器: {url}");
+                            try
+                            {
+                                await client.ConnectAsync(new Uri(url), combinedCts.Token);
+                                var connectedAttempt = reconnectAttempt;
+                                reconnectAttempt = 0;
+                                _logger.LogInformation(connectedAttempt > 0 ? $"WebSocket重连成功（第{connectedAttempt}次）" : "WebSocket连接成功");
+                            }
+                            catch (Exception ex) when (ex is WebSocketException || ex is OperationCanceledException)
+                            {
+                                if (cts.Token.IsCancellationRequested)
+                                {
+                                    break;
+                                }
+
+                                if (reconnectAttempt < maxReconnectAttempts)
+                                {
+                                    reconnectAttempt++;
+                                    _logger.LogWarning(ex, "WebSocket连接失败，准备重试（第{attempt}次）", reconnectAttempt);
+                                    await Task.Delay(TimeSpan.FromSeconds(2), cts.Token);
+                                    continue;
+                                }
+
+                                _logger.LogError(ex, "{streamer}连接WebSocket服务器失败，已放弃重连", streamer.Name);
+                                break;
+                            }
+
+                            if (client.State != WebSocketState.Open)
+                            {
+                                break;
+                            }
+
                             while (client.State == WebSocketState.Open && !cts.Token.IsCancellationRequested)
                             {
                                 WebSocketReceiveResult result;
@@ -168,7 +192,21 @@ namespace LiveRecorder.NET.Services.Singleton
                                 }
                                 catch (WebSocketException wsEx)
                                 {
-                                    _logger.LogError(wsEx, "WebSocket接收数据时出错");
+                                    if (cts.Token.IsCancellationRequested)
+                                    {
+                                        break;
+                                    }
+
+                                    if (reconnectAttempt < maxReconnectAttempts)
+                                    {
+                                        reconnectAttempt++;
+                                        shouldReconnect = true;
+                                        memoryStream.SetLength(0);
+                                        _logger.LogWarning(wsEx, "WebSocket接收数据时出错，准备重连（第{attempt}次）", reconnectAttempt);
+                                        break;
+                                    }
+
+                                    _logger.LogError(wsEx, "WebSocket接收数据时出错，已放弃重连");
                                     break;
                                 }
                                 catch (Exception ex)
@@ -178,9 +216,17 @@ namespace LiveRecorder.NET.Services.Singleton
                                 }
                             }
 
-                            // 最后刷新确保所有数据写入磁盘
-                            await fileStream.FlushAsync(CancellationToken.None);
+                            if (shouldReconnect)
+                            {
+                                await Task.Delay(TimeSpan.FromSeconds(2), cts.Token);
+                                continue;
+                            }
+
+                            break;
                         }
+
+                        // 最后刷新确保所有数据写入磁盘
+                        await fileStream.FlushAsync(CancellationToken.None);
 
                         // 检查录制结果
                         var fileInfo = new FileInfo(outputFilePath);
