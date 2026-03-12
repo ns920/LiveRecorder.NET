@@ -17,6 +17,7 @@ namespace LiveRecorder.NET.Models
         public string Password { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;
         public string LivePassword { get; set; } = string.Empty;
+        public string Quality { get; set; } = "high";
         public Dictionary<string, string> CustomHeader { get; set; } = new Dictionary<string, string>();
         /// <summary>
         /// 消息是否已发送

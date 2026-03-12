@@ -43,11 +43,34 @@ namespace LiveRecorder.NET.Services
             var streamerConfigs = _configuration.GetSection("streamers").Get<List<Streamer>>();
             if (streamerConfigs != null)
             {
+                foreach (var streamer in streamerConfigs)
+                {
+                    NormalizeStreamerConfig(streamer);
+                }
                 _streamers.AddRange(streamerConfigs);
             }
 
             _recordService.RecordingCompleted += OnRecordingCompleted;
             _recordingWSService.RecordingCompleted += OnRecordingCompletedWS;
+        }
+
+        /// <summary>
+        /// 归一化主播配置
+        /// </summary>
+        /// <param name="streamer"></param>
+        private static void NormalizeStreamerConfig(Streamer streamer)
+        {
+            if (string.IsNullOrWhiteSpace(streamer.Quality))
+            {
+                streamer.Quality = "high";
+                return;
+            }
+
+            streamer.Quality = streamer.Quality.Trim().ToLowerInvariant();
+            if (streamer.Quality != "high" && streamer.Quality != "medium" && streamer.Quality != "low")
+            {
+                streamer.Quality = "high";
+            }
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -81,6 +104,10 @@ namespace LiveRecorder.NET.Services
         {
             // 从配置文件获取最新的直播者列表
             var configStreamers = _configuration.GetSection("streamers").Get<List<Streamer>>() ?? new List<Streamer>();
+            foreach (var streamer in configStreamers)
+            {
+                NormalizeStreamerConfig(streamer);
+            }
 
             // 找出需要删除的直播者（在当前列表中但不在配置文件中的）
             var streamersToRemove = _streamers.Where(existing =>
@@ -104,6 +131,7 @@ namespace LiveRecorder.NET.Services
                      existing.Password != config.Password ||
                      existing.Token != config.Token ||
                      existing.LivePassword != config.LivePassword ||
+                     existing.Quality != config.Quality ||
                      existing.IsNotify != config.IsNotify ||
                      existing.IsRecord != config.IsRecord
                      ))).ToList();
@@ -139,6 +167,7 @@ namespace LiveRecorder.NET.Services
                     existingStreamer.Password = updatedStreamer.Password;
                     existingStreamer.Token = updatedStreamer.Token;
                     existingStreamer.LivePassword = updatedStreamer.LivePassword;
+                    existingStreamer.Quality = updatedStreamer.Quality;
                     existingStreamer.IsNotify = updatedStreamer.IsNotify;
                     existingStreamer.IsRecord = updatedStreamer.IsRecord;
                 }

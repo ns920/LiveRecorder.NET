@@ -131,17 +131,14 @@ namespace LiveRecorder.NET.Plugins
                 var streamUrl = "";
                 if (streamUrlNode is not null)
                 {
-                    if (streamUrlNode["main"] != null && !string.IsNullOrEmpty(streamUrlNode["main"]?.GetValue<string>()))
+                    var qualityKeys = GetTwitcastingQualityKeys(streamer.Quality);
+                    foreach (var qualityKey in qualityKeys)
                     {
-                        streamUrl = streamUrlNode["main"]?.GetValue<string>();
-                    }
-                    else if (streamUrlNode["mobilesource"] != null && !string.IsNullOrEmpty(streamUrlNode["mobilesource"]?.GetValue<string>()))
-                    {
-                        streamUrl = streamUrlNode["mobilesource"]?.GetValue<string>();
-                    }
-                    else if (streamUrlNode["base"] != null && !string.IsNullOrEmpty(streamUrlNode["base"]?.GetValue<string>()))
-                    {
-                        streamUrl = streamUrlNode["base"]?.GetValue<string>();
+                        if (streamUrlNode[qualityKey] != null && !string.IsNullOrEmpty(streamUrlNode[qualityKey]?.GetValue<string>()))
+                        {
+                            streamUrl = streamUrlNode[qualityKey]?.GetValue<string>();
+                            break;
+                        }
                     }
                 }
                 if (!string.IsNullOrEmpty(streamer.LivePassword))
@@ -175,6 +172,16 @@ namespace LiveRecorder.NET.Plugins
         public async Task<bool> EndRecording(Streamer streamer)
         {
             return true;
+        }
+        private static List<string> GetTwitcastingQualityKeys(string? quality)
+        {
+            var normalizedQuality = quality?.Trim().ToLowerInvariant() ?? "high";
+            return normalizedQuality switch
+            {
+                "medium" => new List<string> { "mobilesource", "base" },
+                "low" => new List<string> { "base" },
+                _ => new List<string> { "main", "mobilesource", "base" }
+            };
         }
         string CalculatePasswordHash(string password)
         {
